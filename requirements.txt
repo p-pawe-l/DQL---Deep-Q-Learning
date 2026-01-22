@@ -1,0 +1,7 @@
+numpy
+seaborn
+gymnasium
+minigrid
+matplotlib
+swig
+gymnasium[box2d]

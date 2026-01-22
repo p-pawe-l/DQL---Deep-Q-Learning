@@ -1,7 +1,9 @@
-import modules.models.Q_DeepNetwork as nn
-import interfaces.reinforcment_learning as irl
+import modules.Components.models.Q_DeepNetwork as nn
+import Interfaces.ReinforcmentLearning as IRL
 import numpy as np 
 import random
+import copy
+from collections import deque
 
 state = int
 action = int
@@ -11,37 +13,44 @@ action = int
 replay = tuple[state, action, float, state, int]
 
 
-"""Epyslon-greedy variant"""
+"""Epsilon-greedy variant"""
 class Deep_QLearning:
         def __init__(self, 
                      epsylon: float, 
-                     learning_rate: float, 
                      discount_factor: float,
+                     train_network_frequency: int,
+                     batch_size: int,
+                     max_buffer_size: int,
                      actions: list) -> None:
                 self._epsylon: float = epsylon
-                self._learning_rate: float = learning_rate
                 self._discount_factor: float = discount_factor
                 
                 self._actions: list = actions
                 
                 self._q_network: nn.Q_DeepNeuralNetwork | None = None
-                self._reward_function: irl.RewardFunction_Interface | None = None
-                self._replay_buffer: list[replay] = []
-                self._batch_size: int = 32
+                self._target_network: nn.Q_DeepNeuralNetwork | None = None
+                
+                self._reward_function: IRL.RewardFunction_Interface | None = None
+                self._replay_buffer: deque[replay] = deque(maxlen=max_buffer_size)
+                self._batch_size: int = batch_size
+
+                self._train_step_counter: int = 0
+                self._train_frequency: int = train_network_frequency
                 
         """Set custom deep neural network for algorithm"""        
         def set_model(self, model: nn.Q_DeepNeuralNetwork) -> None:
                 self._q_network = model
+                self._target_network = copy.deepcopy(model)
         
         """Sets custom reward function for algorithm"""
-        def set_reward_function(self, reward_function: irl.RewardFunction_Interface) -> None:
+        def set_reward_function(self, reward_function: IRL.RewardFunction_Interface) -> None:
                 self._reward_function = reward_function
                 
         """Picking the best action that neural net produces or with probablity epsylon random action"""
         """Returns the index of best action to choose from self._actions"""
-        def _policy(self, state_t: np.ndarray) -> int:
+        def _policy(self, states: np.ndarray) -> int:
                 if self._q_network is None: raise RuntimeError("Set model before deciding which action to choose")
-                prediction = self._q_network.predict(state_t)
+                prediction = self._q_network.predict(states)
                 
                 action_count = prediction.shape[1] 
                 if np.random.rand() < self._epsylon:
@@ -84,13 +93,12 @@ class Deep_QLearning:
         """Calculating td_error for batch data"""
         def _td_error_batch(self, states: np.ndarray, next_states: np.ndarray, actions: np.ndarray, rewards: np.ndarray, dones: np.ndarray) -> np.ndarray:
                 current_q_values: np.ndarray = self._q_network.predict(states)
-                next_q_values: np.ndarray = self._q_network.predict(next_states)
+                next_q_values: np.ndarray = self._target_network.predict(next_states)
                                     
                 max_q_next_values: np.ndarray = np.max(next_q_values, axis=1)
                 bellman_target_batch: np.ndarray = rewards + (self._discount_factor * max_q_next_values * (1 - dones))
-                
+
                 batch_indicies = np.arange(len(states))
-                actions = actions.astype(int)
                 prediction_for_taken_action = current_q_values[batch_indicies, actions]
                 
                 errors = bellman_target_batch - prediction_for_taken_action
@@ -101,8 +109,9 @@ class Deep_QLearning:
                 return td_error_matrix
                                              
         
-        def _train_q_network(self, verbose: bool = True) -> None:
-                if len(self._replay_buffer) < self._batch_size: return 
+        def _train_q_network(self, verbose: bool = True) -> np.ndarray:
+                if len(self._replay_buffer) < self._batch_size: return np.array([0])
+                
                 """Helper function for getting batch"""
                 def _get_batch(batch_size: int):
                         batch_real_size: int = min(len(self._replay_buffer), batch_size)
@@ -117,13 +126,21 @@ class Deep_QLearning:
                         )       
                 
                 # Fetchind data about batch and training q network to adapt 
-                states, actions, rewards, next_states, dones  = _get_batch(16) 
+                states, actions, rewards, next_states, dones  = _get_batch(self._batch_size)  
                 td_batch_error: np.ndarray = self._td_error_batch(states, next_states, actions, rewards, dones)
                 squread_td_error_batch: np.ndarray = self._q_network.train_step(td_batch_error)
                 
                 if verbose:
                         print(f"Total loss: {np.sum(squread_td_error_batch)}")
+                
+                if self._train_step_counter % self._train_frequency == 0:
+                        self.update_train_network()
                         
+                return squread_td_error_batch
+                        
+
+        def update_train_network(self) -> None:
+                self._target_network = copy.deepcopy(self._q_network)
 
         def produce_action(self, state: np.ndarray) -> int:
                 if self._q_network is None: raise RuntimeError("Model not set")
@@ -134,12 +151,22 @@ class Deep_QLearning:
         def remember(self, state, action, reward, next_state, done):
                 s = state[0] if state.ndim > 1 else state
                 ns = next_state[0] if next_state.ndim > 1 else next_state
-                
-                self._replay_buffer.append((s, action, reward, ns, done))
 
-        def decay_epsilon(self, decay_rate=0.995, min_epsilon=0.01):
+                self._replay_buffer.append((s, int(action), reward, ns, done))
+
+        """Linear drop for epislon"""
+        def decay_epsilon_LINEAR(self, episode, num_episodes):
+                if episode < num_episodes * 0.5:
+                        self._epsylon = 1.0
+                else:
+                        progress = (episode - num_episodes * 0.5) / (num_episodes * 0.5)
+                        self._epsylon = max(0.05, 1.0 - progress)
+                        
+        """Decaying epsilon"""
+        def decay_epsilon_DECAY(self, decay_rate=0.995, min_epsilon=0.01):
                 if self._epsylon > min_epsilon:
                         self._epsylon *= decay_rate
+                        
                         
                         
                 
