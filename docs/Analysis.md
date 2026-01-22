@@ -10,9 +10,8 @@
 
 ### Key Finding: 50% Success Rate Barrier
 
-**CRITICAL OBSERVATION**: Unable to break the 50% success rate barrier.
+**Observation**: Unable to break the 50% success rate barrier.
 
-**TODO**: Examine the win rate plots (Database/Images/winrate_chart_proc_*.png) and fill in:
 - Process 0 Final Win Rate: 42%
 - Process 1 Final Win Rate: 51%
 - Process 2 Final Win Rate: 38%
@@ -44,23 +43,70 @@
 ## Observations from Plots
 
 ### Win Rate Analysis
-**TODO**: After examining winrate_chart_proc_*.png files:
-- Did any process break 50%?
-- At what episode did peak performance occur?
-- Was there instability/oscillation in win rates?
-- Did win rates plateau or continue improving?
+
+![Win Rate Process 0](../Database/Images/winrate_chart_proc_0.png)
+![Win Rate Process 1](../Database/Images/winrate_chart_proc_1.png)
+![Win Rate Process 2](../Database/Images/winrate_chart_proc_2.png)
+![Win Rate Process 3](../Database/Images/winrate_chart_proc_3.png)
+
+**Process 0**: Peaked at ~55% around episode 1200-1250, but declined to final 42%. Briefly broke the 50% threshold but couldn't maintain it. Shows significant instability and oscillation throughout training.
+
+**Process 1**: Best performing process. Peaked at ~55-58% around episodes 1150-1200, maintaining close to 50% threshold with final rate of 51%. This was the only process to sustain performance near 50% by the end of training. High instability with continuous oscillations.
+
+**Process 2**: Peaked at ~52-54% around episodes 1200-1300. Final win rate dropped significantly to 38%. Briefly touched 50% multiple times but showed inability to maintain it. Exhibited high instability and significant performance decline in later episodes (1400-2000).
+
+**Process 3**: Peaked at ~48-50% around episode 1200. Never clearly broke the 50% barrier, consistently staying just below. Final rate of 45%. Moderate instability with noticeable decline in final episodes.
+
+**Key Observations**:
+- **Peak Performance**: All processes peaked around episodes 1150-1300 at approximately 50-58%
+- **Instability**: Severe oscillations in all processes throughout training - no stable convergence
+- **Performance Decay**: 3 out of 4 processes showed declining win rates after peak performance
+- **50% Barrier**: Only Process 1 managed to stay near 50% by end; others fell well below
+- **No Continued Improvement**: Win rates plateaued around episode 1200, then declined rather than continuing to improve
 
 ### Reward Trends
-**TODO**: After examining rewards_chart_proc_*.png files:
-- Did rewards increase over training?
-- What was the approximate final reward?
-- Were there sudden drops or spikes?
+
+![Rewards Process 0](../Database/Images/rewards_chart_proc_0.png)
+![Rewards Process 1](../Database/Images/rewards_chart_proc_1.png)
+![Rewards Process 2](../Database/Images/rewards_chart_proc_2.png)
+![Rewards Process 3](../Database/Images/rewards_chart_proc_3.png)
+
+**Process 0**: Started at ~-75, increased dramatically through first 500 episodes, stabilized around +100 by episode 500. Final reward ~100. Shows clear learning with strong upward trend early, then plateau. High variance throughout (spikes reaching 200+).
+
+**Process 1**: Started at ~-85, showed steady improvement throughout training. Final reward ~60. Most consistent upward trend, though slower improvement after episode 800. High variance with peaks around 100-200.
+
+**Process 2**: Started at ~-75, improved to ~60-70. Clear improvement in first 500 episodes, then plateau with high oscillations. Final reward ~60. More volatile than other processes with sustained high variance.
+
+**Process 3**: Started at ~-75, final reward ~40-50. Steady improvement through episode 1000, followed by slight decline. Less stable than others with consistently high variance.
+
+**Key Observations**:
+- **Positive Trend**: All processes showed improvement from large negative rewards (-75 to -85) to positive rewards
+- **Early Learning**: Most dramatic improvement occurred in first 500 episodes
+- **Plateau Effect**: After episode 500-800, rewards plateaued rather than continuing to improve
+- **High Variance**: All processes exhibited substantial variance throughout training (shaded areas), indicating inconsistent episode performance
+- **Process Divergence**: Final rewards ranged widely from 40-100, suggesting high sensitivity to initialization
 
 ### Loss Behavior
-**TODO**: After examining loss_chart_proc_*.png files:
-- Did loss decrease consistently?
-- Was training stable?
-- Were there periods of high variance?
+
+![Loss Process 0](../Database/Images/loss_chart_proc_0.png)
+![Loss Process 1](../Database/Images/loss_chart_proc_1.png)
+![Loss Process 2](../Database/Images/loss_chart_proc_2.png)
+![Loss Process 3](../Database/Images/loss_chart_proc_3.png)
+
+**Process 0**: Started at ~300, spiked to 1000-1100 during episodes 100-200 (learning instability), then decreased significantly. Stabilized near 0 after episode 700. Very low and stable loss in later training. High variance only in first 500 episodes.
+
+**Process 1**: Started at ~1000, fluctuated with peak at ~900 around episode 250. Decreased to 200-300 by episode 500, stabilized at 50-100 after episode 700. Relatively stable in later training with some persisting variance through middle episodes.
+
+**Process 2**: Started very high at ~1100, decreased steadily through episode 600. Stabilized near 0 after episode 800. Very stable and low in later training. High variance only in first 600 episodes.
+
+**Process 3**: Started extremely high at 3000-4000 (highest of all processes), dropped quickly but remained around 800-1000 through episodes 100-200. Decreased to near 0 by episode 600. Very stable and low in later training. Extremely high initial variance.
+
+**Key Observations**:
+- **Good Convergence**: All processes successfully decreased loss from high initial values to near-zero by episodes 600-800
+- **Training Stability**: After initial high-variance period (first 300-600 episodes), training became very stable
+- **Early Instability**: All processes showed high loss variance in early training, typical of network initialization
+- **Concerning Pattern**: Despite good loss convergence, win rates did NOT improve proportionally after episode 800
+- **Loss-Performance Disconnect**: Low, stable loss after episode 800 did not translate to stable or improving win rates, suggesting potential overfitting or that the learned Q-values don't generalize well to actual policy performance
 
 ---
 
@@ -69,12 +115,12 @@
 ### Possible Reasons for the Barrier
 
 #### 1. Low Discount Factor
-**CRITICAL ISSUE**: γ = 0.5 is very low for FourRooms
+**Possible critical issue**: γ = 0.5 is very low for FourRooms
 - This environment requires long-term planning (many steps to goal)
 - With γ=0.5, rewards 10 steps away are worth only 0.1% of immediate reward
 - Agent cannot learn to value distant goals effectively
 
-**Recommendation**: Increase to γ = 0.95-0.99
+**Future recomendations**: Increase to γ = 0.95-0.99
 
 #### 2. Exploration Strategy
 - Epsilon decay (0.998) might be too fast
@@ -110,9 +156,9 @@
 
 ---
 
-## Recommendations (Priority Order)
+## Recommendations
 
-### HIGH PRIORITY (Likely Causes)
+### HIGH PRIORITY
 
 1. **Increase Discount Factor**
    ```python
@@ -132,7 +178,7 @@
    ```
    Verify your implementation works on simpler task.
 
-### MEDIUM PRIORITY (Worth Testing)
+### MEDIUM PRIORITY
 
 4. **Larger Network**
    ```python
@@ -153,11 +199,10 @@
    EPISODES = 5000  # more time to learn
    ```
 
-### ADVANCED (If Above Don't Work)
+### ADVANCED
 
 7. **Prioritized Experience Replay**
-8. **Double DQN** (reduce overestimation)
-9. **Dueling DQN Architecture**
+8. **Double DQN**
 10. **Different Algorithm** (PPO, SAC)
 
 ---
@@ -171,7 +216,7 @@ suggests systematic limitations in the current approach, most likely:
 2. **Exploration insufficient** for finding good policies
 3. **Environment too complex** for current configuration
 
-### Immediate Next Steps:
+### Next Steps:
 
 1. Set `DISCOUNT_FACTOR = 0.95`
 2. Set `DECAY_RATE = 0.999`
@@ -179,9 +224,6 @@ suggests systematic limitations in the current approach, most likely:
 4. Increase `EPISODES = 5000`
 5. Run 4 parallel training processes again
 6. Use automatic experiment tracking
-7. Generate full report
-
-If this doesn't break 50%, try curriculum learning with Empty-8x8-v0 first.
 
 ---
 
