@@ -59,11 +59,6 @@ python3 main.py
 
 The experiment tracker automatically logs metrics (loss, rewards, success rate, epsilon) to `Database/Experiments/` during training.
 
-### Viewing Results
-
-```bash
-python3 view_plots.py
-```
 
 ## Key Observations
 
@@ -84,23 +79,72 @@ EPSILON_MIN = 0.15      # Higher minimum exploration
 EPISODES = 5000         # More training time
 ```
 
-## File Structure
+## Repository Structure
 
 ```
 DeepReinforcementLearning/
-├── main.py                     # Main training script
-├── ML_algorithms.py            # DQN implementation
-├── view_plots.py               # Plot viewer utility
+├── main.py                                      # Main training script with multiprocessing
+├── ML_algorithms.py                             # DQN implementation
+├── view_plots.py                                # Plot viewer utility
+│
+├── Interfaces/                                  # Abstract base classes for components
+│   ├── DeepLearning/
+│   │   ├── FunctionInterface.py                # Base interface for activation/loss functions
+│   │   ├── InitializerInterface.py             # Base interface for weight initializers
+│   │   ├── LayerInterface.py                   # Base interface for network layers
+│   │   ├── NeuralNetworkInterface.py           # Base interface for neural networks
+│   │   └── OptimizerInterface.py               # Base interface for optimizers
+│   └── ReinforcmentLearning/
+│       └── RewardFunctionInterface.py          # Base interface for reward functions
+│
+├── modules/                                     # Concrete implementations
+│   ├── Components/
+│   │   ├── functions/
+│   │   │   ├── activation_functions/
+│   │   │   │   ├── relu.py                     # ReLU activation
+│   │   │   │   ├── sigmoid.py                  # Sigmoid activation
+│   │   │   │   ├── tanh.py                     # Tanh activation
+│   │   │   │   └── linear.py                   # Linear activation
+│   │   │   └── loss_functions/
+│   │   │       ├── mse_loss.py                 # Mean Squared Error loss
+│   │   │       ├── huber_loss.py               # Huber loss (used in DQN)
+│   │   │       └── cross_entropy_loss.py       # Cross Entropy loss
+│   │   ├── initializers/
+│   │   │   └── HeNormalInitializer.py          # He Normal weight initialization
+│   │   ├── layers/
+│   │   │   └── DenseLayer.py                   # Fully connected layer
+│   │   ├── models/
+│   │   │   └── Q_DeepNetwork.py                # Deep Q-Network model
+│   │   └── optimizers/
+│   │       ├── AdamOptimizer.py                # Adam optimizer
+│   │       └── SGDOptimizer.py                 # SGD optimizer
+│   └── Factory/
+│       ├── ComponentFactory.py                 # Factory for creating components
+│       └── ModelFactory.py                     # Factory for creating models
+│
 ├── utils/
-│   ├── experiment_tracker.py  # Automatic experiment tracking
-│   ├── preprocessing.py       # State preprocessing
-│   └── heurestics.py          # Reward shaping
+│   ├── experiment_tracker.py                   # Automatic experiment tracking & logging
+│   ├── preprocessing.py                        # State preprocessing utilities
+│   └── heurestics.py                           # Reward shaping functions
+│
 ├── Database/
-│   ├── Images/                # Training charts
-│   ├── Models/                # Saved model weights
-│   └── Experiments/           # Experiment data (JSON)
-└── Interfaces/                # Environment interfaces
+│   ├── Images/                                 # Training charts and visualizations
+│   ├── Models/                                 # Saved model weights
+│   └── Experiments/                            # Experiment data (JSON logs)
+│
+└── docs/                                        # Documentation
+    ├── Theory/                                 # Theoretical background
+    └── Other/                                  # Additional documentation
 ```
+
+## Development Status
+
+**Note**: The Deep Learning Interfaces currently need more implementation for comprehensive testing:
+- Additional activation functions (LeakyReLU, ELU, Softmax, etc.)
+- More weight initializers (Xavier/Glorot, LeCun, etc.)
+- Additional layer types (Convolutional, Dropout, Batch Normalization)
+- More optimizer implementations (RMSProp, AdaGrad, etc.)
+- Extended loss functions and test coverage
 
 ## Dependencies
 
